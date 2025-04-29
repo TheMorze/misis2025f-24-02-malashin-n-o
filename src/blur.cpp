@@ -25,3 +25,23 @@ Image sequentialBlur(const Image& input, int k) {
     return output;
 }
 
+Image parallelBlurThreads(const Image& input, int k, int numThreads) {
+    int h = input.size(), w = input[0].size();
+    Image output(h, std::vector<Color>(w));
+    std::vector<std::thread> threads;
+    auto worker = [&](int startRow, int endRow){
+        for(int i = startRow; i < endRow; ++i)
+            for(int j = 0; j < w; ++j)
+                output[i][j] = averageAt(input, i, j, k);
+    };
+    int rowsPer = h / numThreads;
+    for(int t=0; t<numThreads; ++t) {
+        int start = t*rowsPer;
+        int end   = (t==numThreads-1) ? h : start+rowsPer;
+        threads.emplace_back(worker, start, end);
+    }
+    for(auto& th: threads) th.join();
+    return output;
+}
+
+
